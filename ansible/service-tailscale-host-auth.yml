@@ -1,0 +1,20 @@
+---
+- name: Include global vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  # Delegate fact gathering to individual playbooks
+  gather_facts: no
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Set local ansible facts dir
+      set_fact:
+        ansible_local_facts_dir: "{{ ansible_local_facts_dir }}"
+
+# Host configuration pre-tasks
+- name: Host configuration pre-tasks
+  import_playbook: playbooks/kwuxlab_ansible_common_pre_tasks/main.yml
+
+  when: (ansible_local is not defined) or
+    ("kwuxlab_ansible_common_pre_tasks_completion_mark" not in ansible_local) or
+    (kwuxlab_ansible_common_pre_tasks_pb_version != ansible_local.kwuxlab_ansible_common_pre_tasks_completion_mark.version)

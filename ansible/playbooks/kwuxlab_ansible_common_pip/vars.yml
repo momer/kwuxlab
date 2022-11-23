@@ -1,0 +1,19 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+# Set the ansible python interpreter on host
+ansible_python_interpreter: /usr/bin/python3
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `geerlingguy.pip`
+#   source: https://github.com/geerlingguy/ansible-role-pip
+target_pip_package: python3-pip
+target_pip_executable: pip3
+target_pip_install_packages:
+  - name: setuptools
+    version: 53.0.0

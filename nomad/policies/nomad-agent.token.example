@@ -1,0 +1,9 @@
+AccessorID:       fccd9907-b758-627b-86e8-4e1afdadcf68
+SecretID:         f4f04778-a106-2b1d-3e7c-55196694c312
+Description:      Nomad Demo Agent Token
+Local:            false
+Create Time:      2022-03-23 10:30:09.789520776 -0500 CDT
+Policies:
+   a7b45c54-cf5b-334e-9f70-b282c5580040 - nomad-server
+   2b34a017-484d-8c01-f1a6-a6fe15daa020 - nomad-client
+

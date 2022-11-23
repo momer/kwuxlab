@@ -1,0 +1,10 @@
+client {
+{% for nomad_host_volume in target_nomad_host_volumes %}
+{% if nomad_host_volume.create_for | default(True) | bool %}
+    host_volume "{{ nomad_host_volume['name'] }}" {
+        path = "{{ nomad_host_volume['path'] }}"
+        read_only = {{ nomad_host_volume['read_only'] | bool | lower }}
+    }
+{% endif %}
+{% endfor %}
+}

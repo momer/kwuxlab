@@ -1,0 +1,97 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+# Allow the local public key to authenticate to the target host
+target_public_key_filename: "id_ed25519.pub"
+target_public_key_dir_path: "{{ lookup('env','HOME') + '/.ssh/' }}"
+target_public_key: "{{ lookup('file', target_public_key_dir_path + target_public_key_filename) }}"
+
+# Host timezone configuration
+default_local_timezone: America/Chicago
+
+# Base user and group configuration
+sudoer_user: kwuxlab_ansibler
+sudoer_group: wheel
+
+# Base target packages to install
+target_packages:
+  - "wget"
+  - "curl"
+  - "vim"
+  - "git"
+  - "ufw"
+
+# Configure base journalctl log retention
+journalctl_config:
+  SystemMaxUse: 500M
+  MaxRetentionSec: 15day
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `weareinteractive.sudo`
+#   source: https://github.com/weareinteractive/ansible-sudo
+target_sudo_defaults:
+  - defaults: env_reset
+  - defaults: secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  - name: 'kwuxlab_ansibler'
+    defaults: '!requiretty'
+  - name: '%wheel'
+    defaults: '!requiretty'
+
+target_sudo_users:
+  - name: '%wheel'
+    nopasswd: yes
+
+target_purge_other_sudoers_files: yes
+
+# Role:
+#   name: `geerlingguy.git`
+#   source: https://github.com/geerlingguy/ansible-role-git
+target_git_version: "2.26.0"
+
+# Log rotation
+target_logrotate_scripts:
+  - name: auth
+    path: /var/log/auth.log
+    options:
+      - missingok
+      - compress
+      - rotate 5
+      - maxsize 10M
+      - daily
+      - create 0600 syslog adm
+  - name: kern
+    path: /var/log/kern.log
+    options:
+      - missingok
+      - compress
+      - rotate 5
+      - maxsize 50M
+      - daily
+      - create 0600 syslog adm
+  - name: ufw
+    path: /var/log/ufw.log
+    options:
+      - missingok
+      - compress
+      - rotate 5
+      - maxsize 50M
+      - daily
+      - create 0600 syslog adm
+  # Note: This playbook will, in all likelihood, run prior to the installation of
+  # fail2ban, but we'll configure logrotation here for convenience, as we
+  # intend to install it, and the logrotation script isn't dependent on its
+  # existence.
+  - name: fail2ban
+    path: /var/log/fail2ban.log
+    options:
+      - missingok
+      - compress
+      - rotate 1
+      - maxsize 10M
+      - daily
+      - create 0600 root adm

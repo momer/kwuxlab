@@ -1,0 +1,4 @@
+---
+task_group_name: kwuxlab_ansible_service_consul
+kwuxlab_ansible_service_consul_pb_version: 0.0.1
+kwuxlab_ansible_service_consul_post_install_version: 0.0.1

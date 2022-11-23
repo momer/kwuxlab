@@ -1,0 +1,11 @@
+---
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `artis3n.tailscale`
+#   source: https://github.com/artis3n/ansible-role-tailscale
+
+target_tailscale_auth_key: tskey-<replace_with_your_key>

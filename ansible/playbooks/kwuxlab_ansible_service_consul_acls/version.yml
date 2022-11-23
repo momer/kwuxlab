@@ -1,0 +1,3 @@
+---
+task_group_name: kwuxlab_ansible_service_consul_acls
+kwuxlab_ansible_service_consul_acls_pb_version: 0.0.1

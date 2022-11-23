@@ -1,0 +1,83 @@
+---
+roles:
+  # Common
+  - name: weareinteractive.sudo
+    src: weareinteractive.sudo
+    version: 1.14.1
+  - name: jnv.unattended-upgrades
+    src: jnv.unattended-upgrades
+    version: v1.9.0
+  - name: geerlingguy.ntp
+    src: geerlingguy.ntp
+    version: 2.2.0
+  - name: weareinteractive.ufw
+    src: weareinteractive.ufw
+    version: 2.0.1
+  - name: robertdebock.fail2ban
+    src: robertdebock.fail2ban
+    version: 3.1.11
+  # Docker
+  - name: geerlingguy.docker
+    src: geerlingguy.docker
+    version: 4.1.1
+  # Git
+  - name: geerlingguy.git
+    src: geerlingguy.git
+    version: 3.0.0
+  # Python3
+  - name: mdklatt.python3
+    src: mdklatt.python3
+    version: v0.4.1
+  # Ansible
+  - name: geerlingguy.ansible
+    src: geerlingguy.ansible
+    version: 2.1.0
+  - name: geerlingguy.pip
+    src: geerlingguy.pip
+    version: 2.0.0
+  - name: geerlingguy.nodejs
+    src: geerlingguy.nodejs
+    version: 5.1.1
+  - name: artis3n.tailscale
+    src: artis3n.tailscale
+    version: v1.14.0
+  # ~/projects/ansible/postgresql
+  - name: anxsfork.postgresql
+    src: git@github.com:robustq/postgresql.git
+    scm: git
+    version: "vFork-sha-9e14ef93870"
+  - name: nickhammond.logrotate
+    src: nickhammond.logrotate
+  - name: robustq.envoyproxy
+    src: git@github.com:robustq/ansible-role-envoyproxy.git
+    scm: git
+    version: robustq
+  - src: https://github.com/ansible-community/ansible-consul.git
+    name: ansible-consul
+    scm: git
+    version: master
+  - src: https://github.com/ansible-community/ansible-vault.git
+    name: ansible-community.ansible-vault
+    scm: git
+    version: 08cd5a22d236f9f4f4d1ad874d90bbace8b88732
+  - src: https://github.com/ansible-community/ansible-nomad.git
+    name: ansible-community.ansible-nomad
+    scm: git
+    version: c8919d094ec6411e8d65b1abfa65d7a590e19eb3
+  # For now, use the role in the service_ansible_awx playbook,
+  # which is customized due to https://github.com/geerlingguy/ansible-role-awx/issues/39
+  # - name: geerlingguy.awx
+  #   src: geerlingguy.awx
+  #   version: 2.0.0
+
+collections:
+  - name: devsec.hardening
+    src: devsec.hardening
+    version: 7.2.0
+  # To interact with AWX
+  - name: awx.awx
+    src: awx.awx
+    version: 17.0.1
+  - name: community.docker
+    src: community.docker
+    version: 1.4.0

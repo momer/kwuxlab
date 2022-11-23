@@ -1,0 +1,12 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+# Target docker user (running the Consul process/service).
+kwuxlab_docker_user: kwuxlab_dockerer
+
+# Set the ansible python interpreter on the host
+ansible_python_interpreter: /usr/bin/python3
+
+# Set the directory, on the host, to be used to store consul ACL details.
+target_consul_acl_directory: /opt/consul/acls

@@ -1,0 +1,4 @@
+---
+# Completion notification
+task_group_name: kwuxlab_ansible_common_os_hardening
+kwuxlab_ansible_common_os_hardening_pb_version: 0.0.1

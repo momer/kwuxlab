@@ -1,0 +1,29 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `weareinteractive.ufw`
+#   source: https://github.com/weareinteractive/ansible-ufw
+target_ufw_manage_defaults: true
+target_ufw_rules:
+  - logging: "low"
+  - rule: allow
+    to_port: 22
+  - rule: allow
+    to_port: 80
+  - rule: allow
+    to_port: 443
+  - rule: allow
+    to_port: 9999
+  - rule: allow
+    to_port: '41641'
+    proto: udp
+  - rule: allow
+    interface: tailscale0
+    direction: in
+    proto: any

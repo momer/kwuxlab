@@ -1,0 +1,51 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+# Pip install settings
+ansible_python_interpreter: /usr/bin/python3
+
+pip_executable: pip3
+pip_docker_version: 4.4.1
+pip_docker_compose_version: 1.28.2
+
+# Target sudoer group and user for docker.
+sudoer_group: wheel
+
+# Target docker user
+kwuxlab_docker_user: kwuxlab_dockerer
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `geerlingguy.docker`
+#   source: https://github.com/geerlingguy/ansible-role-docker
+
+target_docker_edition: 'ce'
+
+# Customized to include docker version
+# See https://docs.docker.com/engine/release-notes/ for updates
+#
+# and https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/
+# for releases on ubuntu 18.04
+# and https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/
+# for releases on ubuntu 20.04
+#
+# Finally, vagrant ssh node1
+# and sudo apt-cache policy docker-ce
+# to find available versions
+target_docker_engine_install_version: '5:20.10.21~3-0~ubuntu-focal'
+target_docker_package: "docker-{{ docker_edition }}={{ docker_engine_install_version }}"
+target_docker_package_state: present
+
+target_docker_install_compose: true
+target_docker_compose_version: "1.28.2"
+target_docker_compose_path: /usr/local/bin/docker-compose
+
+target_docker_users:
+  - "{{ kwuxlab_docker_user }}"
+
+target_docker_daemon_options:
+  log-driver: "local"

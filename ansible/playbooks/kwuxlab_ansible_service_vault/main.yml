@@ -1,0 +1,65 @@
+---
+- hosts: "{{ variable_hosts | default('kwuxlab_hosts') }}"
+  strategy: linear
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars/shared.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_service_vault
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Load variables for this environment
+      include_vars: "{{ env }}_environment.yml"
+      tags:
+        - gather
+      no_log: true
+
+    - name: Update apt cache if needed
+      apt:
+        update_cache: yes
+
+    - name: Install unzip if required
+      apt:
+        name: unzip
+
+    - name: Install unzip if required
+      apt:
+        name: unzip
+  roles:
+    - role: ansible-community.ansible-vault
+      vars:
+        vault_version: "{{ target_vault_version }}"
+        vault_cluster_name: "{{ datacenter }}"
+        vault_datacenter: "{{ datacenter }}"
+        vault_start_pause_seconds: 5
+        vault_address: "{{ target_vault_bind_address }}"
+
+        vault_backend: consul
+        vault_consul: "{{ target_vault_consul }}"
+        vault_consul_token: "{{ consul_acl_key }}"
+        vault_service_registration_consul_address: "{{ target_vault_consul }}"
+
+        vault_service_registration_consul_enable: true
+        vault_cluster_address: "{{ target_vault_resolved_host_tailscale_address }}:{{ (target_vault_port | int) + 1 }}"
+
+        vault_api_addr: "http://{{ target_vault_resolved_host_tailscale_address }}:{{ target_vault_port }}"
+
+        vault_enable_log: true
+        vault_enable_logrotate: true
+      tags:
+        - vault
+      when: ("kwuxlab_ansible_service_vault_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_service_vault_pb_version != ansible_local.kwuxlab_ansible_service_vault_completion_mark.version)
+
+  tasks:
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

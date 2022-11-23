@@ -1,0 +1,230 @@
+---
+# IMPORTANT:
+# This playbook, for the kwuxlab configuration, expects (requires) that
+# 1. Tailscale has been installed and configured on all target nodes.
+# 2. Consul will run on the tailscale network.
+# 3. The tailscale address for each node is available on the `tailscale0`
+#    (default) network.
+# 4. Within your host inventory configuration (`inventories/{env}/hostip.ini`),
+#    some nodes have been designated as Consul Servers, by setting the variable
+#    `consul_server=true`, while others have been configured as
+#    clients by simply not setting that variable, or setting it to false.
+- hosts: "{{ variable_hosts | default('kwuxlab_hosts') }}"
+  strategy: linear
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+    - include: handlers/main.yml
+  vars_files:
+    - vars/shared.yml
+    - version.yml
+  vars:
+    target_consul_datacenter_members: "{{ groups['docker'] | map('extract', hostvars) | selectattr('datacenter', 'equalto', datacenter) | map(attribute='datacenter') | list }}"
+
+    # Note: consul_node_role hostvar is required by the Vault/Consul playbooks
+    # in some scenarios.
+    #
+    # We will have duplication of consul_node_role and consul_role variables
+    # as a temporary fix.
+    target_consul_join_wan: >
+      [ {% for host in groups['docker'] %}
+        {% if ansible_nodename != hostvars[host]['ansible_facts']['nodename'] and hostvars[host]['consul_node_role'] == 'server' %}
+        '{{ hostvars[host]['ansible_facts']['nodename'] }}'
+        {% if not loop.last %},{% endif %}
+        {% endif %}
+        {% endfor %}
+      ]
+
+    target_consul_local_configuration: >
+      {
+        'node_name': '{{ ansible_facts['nodename'] }}',
+        'disable_keyring_file': true,
+        'advertise_addr': '{{ target_consul_resolved_host_tailscale_address }}',
+        'retry_join_wan': {{ target_consul_join_wan }},
+        'ui_config': {
+          'enabled': true
+        }
+      }
+
+  tags:
+    - kwuxlab_ansible_service_consul
+  pre_tasks:
+    - name: Load variables for this environment
+      include_vars: "{{ env }}_environment.yml"
+      tags:
+        - gather
+      no_log: true
+
+    - name: Investigate target_consul_datacenter_members
+      ansible.builtin.debug:
+        msg: "{{ target_consul_datacenter_members }}"
+
+    - name: Investigate target_consul_join_wan
+      ansible.builtin.debug:
+        msg: "{{ target_consul_join_wan }}"
+
+    - name: Investigate consul local config
+      ansible.builtin.debug:
+        msg: "{{ target_consul_local_configuration }}"
+
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Update apt cache if needed
+      apt:
+        update_cache: yes
+
+    - name: Install unzip if required
+      apt:
+        name: unzip
+
+    - name: Consul clean-up
+      block:
+        - name: Stop consul (if running)
+          service:
+            name: consul
+            state: stopped
+          ignore_errors: true
+        - name: Delete consul root/data directory if exists
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "{{ target_consul_root_directory }}"
+            - "{{ target_consul_data_directory }}"
+
+        - name: Create the consul data and config directories, if not exist
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+            owner: "{{ kwuxlab_docker_user }}"
+            group: "{{ kwuxlab_docker_user }}"
+          loop:
+            - "{{ target_consul_root_directory }}"
+            - "{{ target_consul_data_directory }}"
+
+      when: false
+
+  roles:
+    # NOTE: the `ansible-consul` playbook WILL fail if the node already has the
+    # existing version installed, and this attempts to run. It fails at the:
+    #
+    # > "- name: Install remotely if unzip is not installed on control host"
+    #
+    # step, likely due to it being skipped and set to `run_once` in a previous
+    # command.
+    - role: ansible-consul
+      vars:
+        consul_version: "{{ target_consul_version }}"
+        consul_config_path: "{{ target_consul_root_directory }}"
+        consul_debug: true
+        consul_group_name: docker
+        consul_data_path: "{{ target_consul_data_directory }}"
+        consul_user: root
+        consul_manage_user: false
+        consul_group: root
+        consul_manage_group: false
+        consul_join_wan: "{{ target_consul_join_wan }}"
+        consul_bootstrap_expect: "{{ target_consul_datacenter_members | length }}"
+        consul_datacenter: "{{ datacenter }}"
+        consul_bind_address: "{{ target_consul_bind_address }}"
+        consul_client_address: "{{ target_consul_bind_address }}"
+        consul_advertise_address: "{{ target_consul_resolved_host_tailscale_address }}"
+        consul_advertise_address_wan: "{{ target_consul_resolved_host_tailscale_address }}"
+        consul_node_name: "{{ ansible_facts['nodename'] }}"
+        consul_addresses:
+          dns: "127.0.0.1"
+          http: "0.0.0.0"
+          https: "0.0.0.0"
+          rpc: "0.0.0.0"
+          grpc: "0.0.0.0"
+        consul_tls_enable: false
+        consul_ports:
+          http: "8500"
+          https: "-1"
+          rpc: "8400"
+          serf_lan: "8301"
+          serf_wan: "8302"
+          server: "8300"
+          grpc: "8502"
+          dns: "53"
+        consul_install_upgrade: true
+        consul_install_remotely: true
+        consul_node_role: "{{ 'server' if (consul_server is defined and ((consul_server | bool) is sameas true)) else 'client' }}"
+        consul_connect_enabled: true
+        # See Consul documentation for cert generation, etc.
+        # https://learn.hashicorp.com/tutorials/consul/tls-encryption-secure
+        consul_encrypt_verify_outgoing: false
+        consul_encrypt_verify_incoming: false
+
+        # ACL configuration
+        consul_acl_enable: true
+        consul_acl_default_policy: allow
+        consul_acl_datacenter: "{{ target_consul_acl_datacenter }}"
+        consul_acl_replication_enable: true
+        consul_acl_token_persistence: true
+        consul_acl_replication_token: "{{ target_consul_acl_replication_token }}"
+        consul_acl_master_token_display: "{{ target_consul_acl_master_token_display }}"
+        consul_raw_key: "{{ target_consul_raw_key }}"
+      tags:
+        - consul
+      when: ("kwuxlab_ansible_service_consul_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_service_consul_pb_version != ansible_local.kwuxlab_ansible_service_consul_completion_mark.version)
+
+  tasks:
+    - name: Mark completion of the Consul Install (base)
+      block:
+        - name: Set task group name for Consul Install (base) completion task
+          set_fact:
+            task_group_name: kwuxlab_ansible_service_consul
+
+        - name: log the completion of this task
+          command: /bin/true
+          notify: complete playbook task
+      when: ("kwuxlab_ansible_service_consul_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_service_consul_pb_version != ansible_local.kwuxlab_ansible_service_consul_completion_mark.version)
+
+    - name: "Post-install - Add Consul internal DNS resolution"
+      block:
+        - name: Create the consul data and config directories, if not exist
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0744'
+            owner: systemd-resolve
+            group: systemd-resolve
+          loop:
+            - "/etc/systemd/resolved.conf.d"
+
+        - name: "Add /etc/systemd/resolved.conf.d/consul.conf"
+          template:
+            src: templates/etc/systemd/resolved.conf.d/consul.conf
+            dest: /etc/systemd/resolved.conf.d/consul.conf
+            owner: systemd-resolve
+            group: systemd-resolve
+            mode: "0644"
+          notify: restart systemd-resolved
+
+        - name: "inject custom /etc/systemd/resolved.conf vars"
+          ansible.builtin.lineinfile:
+            path: "/etc/systemd/resolved.conf"
+            regexp: "^(#\\s?)?{{item.key}}=.*"
+            line: "{{item.key}}={{item.value}}"
+          loop: "{{ etc_systemd_resolved_conf_vars | dict2items }}"
+          no_log: false
+
+        - name: Set task group name for post_install completion task
+          set_fact:
+            task_group_name: kwuxlab_ansible_service_consul_post_install
+
+        - name: log the completion of this task
+          command: /bin/true
+          notify: complete playbook task
+      notify: restart systemd-resolved
+      when: ("kwuxlab_post_install_consul_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_service_consul_post_install_version != ansible_local.kwuxlab_post_install_consul_completion_mark.version)
+

@@ -1,0 +1,7 @@
+export MFA_DEVICE="arn:aws:iam::333322221111:mfa/kwuxlab-admin"
+export AWS_PROFILE="kwuxlab-dev-admin"
+export MFA_STS_DURATION="129600"
+export AWS_CREDENTIALS_PATH="/home/kwuxlab/.aws/credentials"
+
+# Use https://github.com/broamski/aws-mfa to generate session tokens for use
+# with terragrunt/terraform commands!

@@ -1,0 +1,48 @@
+[submodule "ansible/playbooks/kwuxlab_ansible_service_consul"]
+	path = ansible/playbooks/kwuxlab_ansible_service_consul
+	url = git@github.com:momer/kwuxlab_ansible_service_consul.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_base"]
+	path = ansible/playbooks/kwuxlab_ansible_common_base
+	url = git@github.com:momer/kwuxlab_ansible_common_base.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_docker"]
+	path = ansible/playbooks/kwuxlab_ansible_common_docker
+	url = git@github.com:momer/kwuxlab_ansible_common_docker.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_hostname"]
+	path = ansible/playbooks/kwuxlab_ansible_common_hostname
+	url = git@github.com:momer/kwuxlab_ansible_common_hostname.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_os_hardening"]
+	path = ansible/playbooks/kwuxlab_ansible_common_os_hardening
+	url = git@github.com:momer/kwuxlab_ansible_common_os_hardening.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_pip"]
+	path = ansible/playbooks/kwuxlab_ansible_common_pip
+	url = git@github.com:momer/kwuxlab_ansible_common_pip.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_ssh_rules"]
+	path = ansible/playbooks/kwuxlab_ansible_common_ssh_rules
+	url = git@github.com:momer/kwuxlab_ansible_common_ssh_rules.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_tailscale"]
+	path = ansible/playbooks/kwuxlab_ansible_common_tailscale
+	url = git@github.com:momer/kwuxlab_ansible_common_tailscale.git
+[submodule "ansible/playbooks/kwuxlab_ansible_common_ufw"]
+	path = ansible/playbooks/kwuxlab_ansible_common_ufw
+	url = git@github.com:momer/kwuxlab_ansible_common_ufw.git
+[submodule "ansible/playbooks/kwuxlab_ansible_maintenance_apt_upgrade"]
+	path = ansible/playbooks/kwuxlab_ansible_maintenance_apt_upgrade
+	url = git@github.com:momer/kwuxlab_ansible_maintenance_apt_upgrade.git
+[submodule "ansible/playbooks/kwuxlab_ansible_maintenance_reboot"]
+	path = ansible/playbooks/kwuxlab_ansible_maintenance_reboot
+	url = git@github.com:momer/kwuxlab_ansible_maintenance_reboot.git
+[submodule "ansible/playbooks/kwuxlab_ansible_maintenance_restart_service"]
+	path = ansible/playbooks/kwuxlab_ansible_maintenance_restart_service
+	url = git@github.com:momer/kwuxlab_ansible_maintenance_restart_service.git
+[submodule "ansible/playbooks/kwuxlab_ansible_service_consul_acls"]
+	path = ansible/playbooks/kwuxlab_ansible_service_consul_acls
+	url = git@github.com:momer/kwuxlab_ansible_service_consul_acls.git
+[submodule "ansible/playbooks/kwuxlab_ansible_service_envoy"]
+	path = ansible/playbooks/kwuxlab_ansible_service_envoy
+	url = git@github.com:momer/kwuxlab_ansible_service_envoy.git
+[submodule "ansible/playbooks/kwuxlab_ansible_service_nomad"]
+	path = ansible/playbooks/kwuxlab_ansible_service_nomad
+	url = git@github.com:momer/kwuxlab_ansible_service_nomad.git
+[submodule "ansible/playbooks/kwuxlab_ansible_service_vault"]
+	path = ansible/playbooks/kwuxlab_ansible_service_vault
+	url = git@github.com:momer/kwuxlab_ansible_service_vault.git

@@ -1,0 +1,52 @@
+---
+- name: Include global vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  # Delegate fact gathering to individual playbooks
+  gather_facts: no
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Set local ansible facts dir
+      set_fact:
+        ansible_local_facts_dir: "{{ ansible_local_facts_dir }}"
+
+- name: Include version vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: yes
+  vars_files:
+    - playbooks/kwuxlab_ansible_service_nomad/version.yml
+
+  tasks:
+    - name: Set current playbook version
+      set_fact:
+        kwuxlab_ansible_service_nomad_pb_version: "{{ kwuxlab_ansible_service_nomad_pb_version }}"
+
+- name: Include variable_hosts vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: no
+  tasks:
+    - name: Set variable_hosts var
+      set_fact:
+        variable_hosts: "{{ variable_hosts | default(omit) }}"
+    - name: Debug variable_hosts var
+      ansible.builtin.debug:
+        msg: "Variable hosts: {{ variable_hosts }}"
+
+- name: Gather facts for all kwuxlab hosts
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: false
+  tasks:
+    - name: Setup
+      ansible.builtin.setup:
+      tags:
+        - always
+
+# Nomad
+- name: Install nomad
+  import_playbook: playbooks/kwuxlab_ansible_service_nomad/main.yml
+#  when: ("kwuxlab_ansible_service_nomad_completion_mark" not in ansible_local) or
+#    (kwuxlab_ansible_service_nomad_pb_version != ansible_local.kwuxlab_ansible_service_nomad_completion_mark.version)

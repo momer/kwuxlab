@@ -1,0 +1,105 @@
+---
+- hosts: "{{ target_host_group | default('all')}}"
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/main.yml
+    - include: handlers/ssh.yml
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_common_base
+    - cubic_iso_build
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Update apt cache if required
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+
+    - name: Install aptitude if required
+      apt:
+        name: aptitude
+
+    # Note: This can be helpful for building ISOs.
+    - name: Install ssh if required
+      apt:
+        name: ssh
+
+    - name: Ensure presence of our desired sudoer group
+      group:
+        name: "{{ sudoer_group }}"
+        state: present
+
+    - name: Create ansible user with membership to sudoer group
+      user:
+        name: "{{ sudoer_user }}"
+        groups: "{{ sudoer_group }}"
+        append: yes
+        create_home: True
+        shell: /bin/bash
+
+    - name: Add local public key to authorized keys list
+      authorized_key:
+        user: "{{ sudoer_user }}"
+        state: present
+        key: "{{ target_public_key }}"
+      notify: restart ssh
+
+    - name: Install base target packages
+      apt:
+        name: "{{ item }}"
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600
+      loop: "{{ target_packages }}"
+
+    - name: Add job triggering logs rotation frequently
+      cron:
+        name: 'logrotate-frequently'
+        cron_file: 'logrotate-frequently.cron'
+        user: 'root'
+        minute: '*/2'
+        job: '/etc/cron.daily/logrotate'
+        state: present
+      tags: cronjob
+
+    - name: Configure journalctl (e.g. max disk usage)
+      ansible.builtin.lineinfile:
+        path: "/etc/systemd/journald.conf"
+        regexp: "^(#\\s?)?{{item.key}}=.*"
+        line: "{{item.key}}={{item.value}}"
+      loop: "{{ journalctl_config | dict2items }}"
+      no_log: false
+      notify: restart systemd-journald
+
+  roles:
+    - role: weareinteractive.sudo
+      vars:
+        sudo_defaults: "{{ target_sudo_defaults }}"
+        sudo_users: "{{ target_sudo_users }}"
+        purge_other_sudoers_files: "{{ target_purge_other_sudoers_files }}"
+    - role: geerlingguy.git
+      vars:
+        git_version: "{{ target_git_version }}"
+    - role: nickhammond.logrotate
+      vars:
+        logrotate_scripts: "{{ target_logrotate_scripts }}"
+    - role: geerlingguy.ntp
+      vars:
+        ntp_timezone: "{{ default_local_timezone }}"
+
+  tasks:
+    - name: Configure local timezone
+      community.general.timezone:
+        name: "{{ default_local_timezone }}"
+
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

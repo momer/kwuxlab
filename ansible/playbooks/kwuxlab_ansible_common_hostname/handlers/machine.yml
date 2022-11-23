@@ -1,0 +1,4 @@
+---
+- name: reboot machine
+  reboot:
+    msg: "Reboot triggered by ansible handler"

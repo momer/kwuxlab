@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# Install ansible dependencies/requirements
+./bin/install-requirements
+
+# Service to provision (note: matches name of /ansible/service-<SERVICE_NAME>.yml)
+default_service="tailscale-host-auth"
+SERVICE="${SERVICE:-$default_service}"
+
+# Set the KWUXLAB_ENV; default is "test"
+default_kwuxlab_env="test"
+KWUXLAB_ENV="${KWUXLAB_ENV:-$default_kwuxlab_env}"
+
+params=("-vv"
+"-e" "env=${KWUXLAB_ENV}"
+"-e" "ansible_user=kwuxlab_ansibler"
+"-e" "remote_user=kwuxlab_ansibler"
+"--vault-password-file" "password_file.${KWUXLAB_ENV}.txt"
+"-i" "inventories/${KWUXLAB_ENV}/tailscale.ini")
+
+if [[ "$PLAYBOOK_HOSTS" ]]; then
+  params+=("-e" "variable_hosts=${PLAYBOOK_HOSTS}")
+fi
+
+if [ "$KWUXLAB_ENV" = "test" ]; then
+  params+=("--private-key=~/.vagrant.d/insecure_private_key")
+fi
+
+params+=("service-${SERVICE}.yml")
+
+ansible-playbook "${params[@]}"

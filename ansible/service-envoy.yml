@@ -1,0 +1,40 @@
+---
+- name: Include global vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  # Delegate fact gathering to individual playbooks
+  gather_facts: no
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Set local ansible facts dir
+      set_fact:
+        ansible_local_facts_dir: "{{ ansible_local_facts_dir }}"
+
+- name: Include version vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: yes
+  vars_files:
+    - playbooks/kwuxlab_ansible_service_envoy/version.yml
+
+  tasks:
+    - name: Set current playbook version
+      set_fact:
+        kwuxlab_ansible_service_envoy_pb_version: "{{ kwuxlab_ansible_service_envoy_pb_version }}"
+
+- name: Gather facts for all kwuxlab hosts
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: false
+  tasks:
+    - name: Setup
+      ansible.builtin.setup:
+      tags:
+        - always
+
+# Envoy
+- name: Install envoy
+  import_playbook: playbooks/kwuxlab_ansible_service_envoy/main.yml
+  when: ("kwuxlab_ansible_service_envoy_completion_mark" not in ansible_local) or
+    (kwuxlab_ansible_service_envoy_pb_version != ansible_local.kwuxlab_ansible_service_envoy_completion_mark.version)

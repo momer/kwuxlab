@@ -1,0 +1,38 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+# Set the ansible python interpreter on host
+ansible_python_interpreter: /usr/bin/python3
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `ansible-community.ansible-nomad`
+#   source: https://github.com/ansible-community/ansible-nomad
+
+# Target name of the Vault cluster
+target_vault_cluster_name: "kwuxlab_vault"
+
+# Target Vault version to install
+target_vault_version: "1.9.0"
+
+# Target directory to store Vault required files
+target_vault_root_directory: "/var/lib/vault"
+
+# Target directory to store Vault data on-disk
+target_vault_data_directory: "{{ target_vault_root_directory }}/data"
+
+# Vault listen port
+target_vault_port: "8200"
+
+# Vault bind address (all interfaces)
+target_vault_bind_address: "0.0.0.0"
+
+# Host-local Tailscale address
+target_vault_resolved_host_tailscale_address: "{{ hostvars[inventory_hostname]['ansible_facts']['tailscale0']['ipv4']['address'] }}"
+
+# Host-local Target location of consul client
+target_vault_consul: "{{ target_vault_resolved_host_tailscale_address }}:8500"

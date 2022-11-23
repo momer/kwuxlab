@@ -1,0 +1,92 @@
+---
+- name: Include global vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  # Delegate fact gathering to individual playbooks
+  gather_facts: yes
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Set local ansible facts dir
+      set_fact:
+        ansible_local_facts_dir: "{{ ansible_local_facts_dir }}"
+
+- name: Include version vars
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: yes
+  vars_files:
+    - playbooks/kwuxlab_ansible_common_hostname/version.yml
+    - playbooks/kwuxlab_ansible_common_tailscale/version.yml
+
+    # Base extras
+    - playbooks/kwuxlab_ansible_common_docker/version.yml
+    - playbooks/kwuxlab_ansible_common_pip/version.yml
+
+  tasks:
+    - name: Set current playbook versions
+      set_fact:
+        kwuxlab_ansible_common_hostname_pb_version: "{{ kwuxlab_ansible_common_hostname_pb_version }}"
+        kwuxlab_ansible_common_tailscale_pb_version: "{{ kwuxlab_ansible_common_tailscale_pb_version }}"
+
+        # Base extras
+        kwuxlab_ansible_common_pip_pb_version: "{{ kwuxlab_ansible_common_pip_pb_version }}"
+        kwuxlab_ansible_common_docker_pb_version: "{{ kwuxlab_ansible_common_docker_pb_version }}"
+
+- name: Gather facts for all kwuxlab hosts
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: no
+  tasks:
+    - name: Setup
+      ansible.builtin.setup:
+      tags:
+        - always
+
+# Hostname Configuration
+# Note - for vagrant, this needs to run every time a boot occurs
+- name: Update hostname to reflect Tailscale/groupvars configuration
+  import_playbook: playbooks/kwuxlab_ansible_common_hostname/main.yml
+  vars:
+    ansible_user: "kwuxlab_ansibler"
+    remote_user: "kwuxlab_ansibler"
+  when: (ansible_facts['nodename'] != target_hostname) or
+        ("kwuxlab_ansible_common_hostname_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_common_hostname_pb_version != ansible_local.kwuxlab_ansible_common_hostname_completion_mark.version)
+
+# Tailscale
+- name: Install, register, and configure Tailscale
+  import_playbook: playbooks/kwuxlab_ansible_common_tailscale/main.yml
+  vars:
+    ansible_user: "kwuxlab_ansibler"
+    remote_user: "kwuxlab_ansibler"
+  when: ("kwuxlab_ansible_common_tailscale_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_common_tailscale_pb_version != ansible_local.kwuxlab_ansible_common_tailscale_completion_mark.version)
+
+- name: Gather facts for all tailscale hosts
+  hosts:
+    - "{{ target_host_group | default('all') }}"
+  gather_facts: no
+  tasks:
+    - name: Setup
+      ansible.builtin.setup:
+      tags:
+        - always
+
+# Pip
+- name: Install python3 and pip
+  import_playbook: playbooks/kwuxlab_ansible_common_pip/main.yml
+  vars:
+    ansible_user: "kwuxlab_ansibler"
+    remote_user: "kwuxlab_ansibler"
+  when: ("kwuxlab_ansible_common_pip_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_common_pip_pb_version != ansible_local.kwuxlab_ansible_common_pip_completion_mark.version)
+
+# Docker
+- name: Install docker
+  import_playbook: playbooks/kwuxlab_ansible_common_docker/main.yml
+  vars:
+    ansible_user: "kwuxlab_ansibler"
+    remote_user: "kwuxlab_ansibler"
+  when: ("kwuxlab_ansible_common_docker_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_common_docker_pb_version != ansible_local.kwuxlab_ansible_common_docker_completion_mark.version)

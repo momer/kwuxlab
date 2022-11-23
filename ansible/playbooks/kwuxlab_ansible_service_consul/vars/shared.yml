@@ -1,0 +1,45 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+# See kwuxlab_ansible_service_docker/vars.yml
+kwuxlab_docker_user: kwuxlab_dockerer
+# Set host ansible python interpreter
+ansible_python_interpreter: /usr/bin/python3
+
+# Once Consul has been installed, the host will be configured such that
+# Consul's service catalog are available via DNS.
+etc_systemd_resolved_conf_vars:
+  DNSStubListener: "yes"
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `ansible-consul`
+#   source: https://github.com/ansible-community/ansible-consul
+
+# override on CLI for dev with CONSUL_ACL_DATACENTER=dc1
+target_consul_acl_master_token_display: false
+
+# Consul config & volumes
+kwuxlab_consul_network: kwuxlab_consul_network
+# Details @ https://hub.docker.com/r/bitnami/consul
+target_consul_version: "1.11.4"
+target_consul_image: "bitnami/consul:{{ target_consul_version }}"
+target_consul_root_directory: "/var/lib/consul"
+target_consul_data_directory: "{{ target_consul_root_directory }}/data"
+target_consul_container_uid: 1001
+
+target_consul_container_name: "kwuxlab_consul"
+target_consul_bind_address: "0.0.0.0"
+target_consul_resolved_host_tailscale_address: "{{ hostvars[inventory_hostname]['ansible_facts']['tailscale0']['ipv4']['address'] }}"
+
+# https://www.consul.io/docs/install/ports
+target_consul_server_rpc_port: 8300
+target_consul_server_lan_serf_port: 8301
+target_consul_server_wan_serf_port: 8302
+target_consul_ui_port: 8500
+target_consul_dns_port: 8600
+target_consul_sidecar_port_range: "21000-21255"

@@ -1,0 +1,15 @@
+---
+# The Consul Master key/token to be used to bootstrap ACLs for the cluster.
+#
+# Below is an example token; keep yours secret. Keep it safe.
+consul_master_key: "bc2b0299-e39d-43a2-aea8-1a5cc9684ec6"
+
+# The Vault token, with access to the kv-v1 store, to be used to store
+# Consul ACLs.
+#
+# Below is an example token; keep yours secret. Keep it safe.
+vault_master_token: "s.79CriBBzcm4cpFaQexmG0lHT"
+
+# A `target_`-namespaced variable (to avoid conflicts), with the value of the
+# primary vault datacenter, for access via Consul-configured DNS.
+target_vault_primary_datacenter: dc1

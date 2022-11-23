@@ -1,0 +1,9 @@
+target_nomad_host_volumes:
+  # Traefik
+  - name: traefik_acme
+    path: /opt/nomad/traefik_acme
+    owner: root
+    group: bin
+    mode: "0755"
+    read_only: false
+    create_for: "{{ (traefik_host is defined and ((traefik_host | bool) is sameas true)) }}"

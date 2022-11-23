@@ -1,0 +1,14 @@
+---
+# Default host path to store local facts
+ansible_local_facts_dir: "{{ ansible_local_facts_dir | default('/etc/ansible/facts.d') }}"
+
+#
+# Role-speciifc configuration
+#
+
+# Role:
+#   name: `devsec.hardening.ssh_hardening`
+#   source: https://github.com/dev-sec/ansible-collection-hardening/tree/master/roles/ssh_hardening
+
+# Enable SFTP for ansible
+target_sftp_enabled: true

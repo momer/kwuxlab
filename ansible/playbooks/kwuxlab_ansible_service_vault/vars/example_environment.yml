@@ -1,0 +1,14 @@
+---
+# The ACL token to be used to configure and access Consul
+# from the Vault cluster.
+#
+# https://developer.hashicorp.com/vault/docs/configuration/storage/consul
+#
+# In production, this should be a *new* token, and NOT the master token used for
+# the initial bootstrapping of Consul's ACL configuration.
+#
+# Also note, that this is a sensitive value; an example UUID is provided below
+# for demonstration purposes, allowing for consistent/tangible examples
+# that can be followed across repositories.
+
+consul_acl_key: "58b39ecd-614c-5094-a4ae-c4db5c08e496"

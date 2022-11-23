@@ -1,0 +1,20 @@
+# AWS account details, used for access to S3, to store terraform remote state,
+# as Hetzner doesn't provide an S3-compatible object storage service at
+# time of writing.
+
+# Use https://github.com/broamski/aws-mfa to generate session tokens for use
+# with terragrunt/terraform commands!
+export MFA_DEVICE="arn:aws:iam::333322221111:mfa/kwuxlab-admin"
+export AWS_PROFILE="kwuxlab-dev-admin"
+export MFA_STS_DURATION="129600"
+export AWS_CREDENTIALS_PATH="/home/kwuxlab/.aws/credentials"
+
+# Hetzner details
+#
+# Create your own API token by following the instructions at
+# https://docs.hetzner.cloud/#getting-started
+
+# The project name isn't required, but is helpful to keep track of across
+# environments!
+export HETZNER_PROJECT="kwuxlab-dev"
+export HETZNER_API_TOKEN="<REPLACE_WITH_YOUR_API_TOKEN>"

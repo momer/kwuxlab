@@ -1,0 +1,192 @@
+---
+- hosts: "{{ variable_hosts | default('kwuxlab_hosts') }}"
+  strategy: linear
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars/shared.yml
+    - version.yml
+  vars:
+    target_vault_addr: "http://active.vault.service.{{ target_vault_primary_datacenter }}.consul:8200"
+    target_expected_server_count: "{{ groups[(variable_hosts | default('kwuxlab_hosts'))] | map('extract', hostvars) | selectattr('primary_consul_server', 'equalto', 'true') | list | length }}"
+  tags:
+    - kwuxlab_ansible_service_nomad
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Load variables for this environment
+      include_vars: "{{ env }}_environment.yml"
+      tags:
+        - gather
+      no_log: true
+
+    - name: Update apt cache if needed
+      apt:
+        update_cache: yes
+
+    - name: Install unzip if required
+      apt:
+        name: unzip
+
+    - name: debug nomad node role
+      debug:
+        msg: "{{ 'server' if ((primary_consul_server is defined and ((primary_consul_server | bool) is sameas true)) and (consul_server is defined and ((consul_server | bool) is sameas true))) else 'client' }}"
+
+    - name: |-
+        Nomad clean-up. This task is useful if you must re-deploy nomad,
+        for whatever reason, and want to completely blow away the current install.
+      block:
+        - name: Stop nomad (if running)
+          service:
+            name: nomad
+            state: stopped
+          ignore_errors: true
+        - name: Delete nomad root/data directory if exists
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "{{ target_nomad_data_dir }}"
+            - "{{ target_nomad_config_dir }}"
+      when: false
+  roles:
+    - role: ansible-community.ansible-nomad
+      vars:
+        nomad_version: "{{ target_nomad_version }}"
+        nomad_skip_ensure_all_hosts: "{{ target_nomad_skip_ensure_all_hosts}}"
+
+        # Note: currently, we don't run the Nomad process as a non-root user
+        # (even if that user has passwordless sudo).
+        #
+        # Ref: https://discuss.hashicorp.com/t/run-nomad-with-consul-sidecar-as-non-root/32008/2
+        #
+        # This may change in future, though!
+        # nomad_user: "{{ kwuxlab_docker_user }}"
+        nomad_manage_user: no
+
+        # Ansible group
+        nomad_group_name: "{{ variable_hosts | default('kwuxlab_hosts') }}"
+
+        # Overriding bootstrap_expect can be helpful if, for example, you've opted to only bring up
+        # one Vagrant/Nomad server node, and so cannot meet the minimum
+        # requirement of the default bootstrap expectation of 3 nodes when using
+        # consul integration (set by the ansible-nomad role).
+        nomad_bootstrap_expect: "{{ [ (target_expected_server_count | int), 3 ] | min }}"
+        nomad_cluster_name: "{{ datacenter }}"
+        nomad_datacenter: "{{ datacenter }}"
+        nomad_node_name: "{{ ansible_facts['nodename'] }}"
+
+        # All consul servers in the primary dc are nomad servers
+        nomad_cni_enable: yes
+        nomad_plugins:
+          docker:
+            config:
+              allow_privileged: true
+        nomad_node_role: "{{ 'server' if ((primary_consul_server is defined and ((primary_consul_server | bool) is sameas true)) and (consul_server is defined and ((consul_server | bool) is sameas true))) else 'client' }}"
+        nomad_leave_on_terminate: no
+
+        nomad_reserved_cpu: "{{ target_nomad_reserved_cpu }}"
+        nomad_reserved_memory: "{{ target_nomad_reserved_memory }}"
+        nomad_reserved_disk: "{{ target_nomad_reserved_disk }}"
+        nomad_reserved_ports: "{{ target_nomad_reserved_ports }}"
+        nomad_no_host_uuid: yes
+
+        nomad_host_volumes:
+          - name: volume_data
+            path: /opt/nomad/volume_data
+            owner: root
+            group: bin
+            mode: "0755"
+            read_only: false
+
+        nomad_bind_address: "{{ target_nomad_bind_address }}"
+        nomad_advertise_address: "{{ target_nomad_advertise_address }}"
+
+        nomad_use_consul: yes
+        # CRITICAL: this must be local; each nomad agent MUST talk to a separate consul agent.
+        # https://github.com/hashicorp/nomad/issues/7532
+        # https://www.nomadproject.io/docs/configuration/consul
+        nomad_consul_address: "{{ target_nomad_consul }}"
+        nomad_consul_token: "{{ consul_master_key }}"
+
+        nomad_acl_enabled: yes
+
+        nomad_vault_enabled: yes
+        nomad_vault_address: "{{ target_vault_addr }}"
+        nomad_vault_allow_unauthenticated: no
+        nomad_vault_token: "{{ vault_master_token }}"
+
+        nomad_telemetry: yes
+        nomad_telemetry_use_node_name: yes
+        nomad_telemetry_publish_allocation_metrics: yes
+        nomad_telemetry_publish_node_metrics: yes
+        nomad_telemetry_prometheus_metrics: yes
+
+        nomad_host_networks:
+          - name: private
+            interface: tailscale0
+            reserved_ports: 22,1999,4646,4647,4648,8001,8200,8201,8300,8301,8302,8500,8502,8600
+
+        nomad_autopilot: yes
+
+      tags:
+        - nomad
+      when: ("kwuxlab_ansible_service_nomad_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_service_nomad_pb_version != ansible_local.kwuxlab_ansible_service_nomad_completion_mark.version)
+
+  tasks:
+
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task
+
+# Optional: add host volumes, if desired, to the target nodes.
+# This is helpful for persisted state in e.g. database applications, etc.
+- hosts: "nomad_host_volume_nodes"
+  serial: 1
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/main.yml
+  vars_files:
+    - vars/shared.yml
+    - vars/shared_nomad_host_volumes.yml
+  tags:
+    - kwuxlab_ansible_service_nomad
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+  tasks:
+    - name: Nomad host volumes
+      block:
+        - name: "Ensure existence of nomad config directory ({{ target_nomad_config_dir }})"
+          file:
+            path: "{{ target_nomad_config_dir }}"
+            state: directory
+            mode: "0755"
+        - name: "create volume {{ item['name'] }}"
+          file:
+            path: "{{ item['path'] }}"
+            owner: "{{ item['owner'] }}"
+            group: "{{ item['group'] }}"
+            state: directory
+            mode: "{{ item['mode'] | default('0755') }}"
+          with_items: "{{ target_nomad_host_volumes }}"
+          when: item.create_for | default(True) | bool
+
+        - name: Host volume configuration
+          template:
+            src: host_volumes.hcl.j2
+            dest: "{{ target_nomad_config_dir }}/host_volumes.hcl"
+            owner: root
+            group: root
+            mode: 0644
+          notify:
+            - restart nomad

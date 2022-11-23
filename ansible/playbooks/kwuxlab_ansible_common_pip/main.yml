@@ -1,0 +1,50 @@
+---
+- hosts: "{{ target_host_group | default('all')}}"
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_common_pip
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    # Ref: https://github.com/geerlingguy/ansible-role-pip/issues/25
+    - name: Install setuptools and other required deps
+      block:
+        - name: Update apt cache if required
+          apt:
+            update_cache: yes
+            cache_valid_time: 600
+
+        - name: Install python3-pip
+          apt:
+            name: python3-pip
+
+        - name: Install python3-setuptools
+          apt:
+            name: python3-setuptools
+
+  roles:
+    - role: geerlingguy.pip
+      vars:
+        pip_package: "{{ target_pip_package }}"
+        pip_executable: "{{ target_pip_executable }}"
+        pip_install_packages: "{{ target_pip_install_packages }}"
+
+  tasks:
+    - name: Install the latest pip
+      pip:
+        name: pip
+        executable: pip3
+        state: latest
+
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

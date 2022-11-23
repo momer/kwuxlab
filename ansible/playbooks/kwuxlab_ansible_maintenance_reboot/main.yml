@@ -1,0 +1,31 @@
+---
+- hosts: "{{ target_host_group | default('all')}}"
+  name: Perform reboot maintenance, when required.
+  become: yes
+  gather_facts: yes
+  tags:
+    - kwuxlab_ansible_maintenance_reboot
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Check if reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required_file
+
+  tasks:
+    # Source: https://coderwall.com/p/0nckqg/ansible-reboot-ubuntu-if-needed
+    - name: Reboot system if required
+      throttle: 2
+      reboot:
+        msg: "Reboot triggered by ansible handler"
+      when: reboot_required_file.stat.exists
+
+    - name: Allow the host to come back online
+      wait_for:
+        host: "{{ ansible_facts['nodename'] }}"
+        port: 22
+        state: started

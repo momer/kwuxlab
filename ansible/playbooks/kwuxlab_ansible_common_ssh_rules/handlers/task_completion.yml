@@ -1,0 +1,19 @@
+---
+- name: Set task group completion fact
+  set_fact:
+    task_group_completion_fact: "{{ task_group_name }}_completion_mark"
+  listen: complete playbook task
+
+- name: |
+    Mark this node as having completed the task group setup at this version
+  ansible.builtin.template:
+    src: templates/completion.jinja2
+    dest: "{{ ansible_local_facts_dir }}/{{ task_group_completion_fact }}.fact"
+    mode: u=rw,g=r,o=r
+  become: yes
+  listen: complete playbook task
+
+- name: Re-read facts after adding custom fact
+  ansible.builtin.setup:
+    filter: ansible_local
+  listen: complete playbook task

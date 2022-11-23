@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+ansible \
+  -i inventories/vagrant/all.ini \
+  all \
+  -m debug -a "var=hostvars[inventory_hostname]"

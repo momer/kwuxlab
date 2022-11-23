@@ -1,0 +1,7 @@
+.idea/
+# Environment-specific variables
+*_environment.yml
+!example_environment.yml
+
+vars/*_environment.yml
+!vars/example_environment.yml

@@ -1,0 +1,18 @@
+---
+- hosts: "{{ variable_hosts | default('kwuxlab_hosts') }}"
+  serial: "{{ variable_serial | default('1') }}"
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/shared.yml
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+  tasks:
+    - name: Restart service
+      service:
+        name: "{{ target_service }}"
+        state: restarted

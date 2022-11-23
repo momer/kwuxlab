@@ -1,0 +1,3 @@
+---
+task_group_name: kwuxlab_ansible_service_nomad
+kwuxlab_ansible_service_nomad_pb_version: 0.0.1

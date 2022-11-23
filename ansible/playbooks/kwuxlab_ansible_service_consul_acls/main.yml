@@ -1,0 +1,148 @@
+---
+- hosts: "{{ variable_hosts | default('kwuxlab_hosts') }}"
+  strategy: linear
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars/shared.yml
+    - version.yml
+  vars:
+    consul_agent_token_name: "{{ ansible_facts['nodename'] }} agent token"
+    target_vault_addr: "http://active.vault.service.{{ target_vault_primary_datacenter }}.consul:8200"
+
+  tags:
+    - kwuxlab_ansible_service_consul
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Load variables for this environment
+      include_vars: "{{ env }}_environment.yml"
+      tags:
+        - gather
+      no_log: true
+
+    - name: Create the consul acl directory, if not exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ kwuxlab_docker_user }}"
+        group: "{{ kwuxlab_docker_user }}"
+      loop:
+        - "{{ target_consul_acl_directory }}"
+
+    - name: Check for extant consul agent token
+      shell: >
+        consul acl token list | grep '{{ consul_agent_token_name }}'
+      register: consul_agent_token_list_status
+      environment:
+        CONSUL_HTTP_TOKEN: "{{ consul_master_key }}"
+      no_log: true
+      ignore_errors: true
+
+  tasks:
+    - name: Create agent token
+      block:
+        - name: Create tempfile to persist ACL token
+          tempfile:
+            state: file
+            suffix: json
+          register: tmp_token_file
+
+        - name: "Template this node's ACL: it can write to itself"
+          template:
+            src: "acls/node-policy.hcl.jinja2"
+            dest: "{{ target_consul_acl_directory }}/node-policy.hcl"
+            owner: "{{ kwuxlab_docker_user }}"
+            group: "{{ kwuxlab_docker_user }}"
+            mode: "0644"
+
+        - name: Create node's agent policy
+          command: >
+            consul acl policy create
+            -name {{ ansible_facts['nodename'] }}
+            -rules @{{ target_consul_acl_directory }}/node-policy.hcl
+          register: node_agent_acl_policy
+          no_log: false
+          run_once: false
+          environment:
+            CONSUL_HTTP_TOKEN: "{{ consul_master_key }}"
+
+        - name: Investigate agent policy
+          ansible.builtin.debug:
+            msg: "{{ node_agent_acl_policy.stdout }}"
+
+        - name: Create node's agent token
+          command: >
+            consul acl token create
+            -description "{{ consul_agent_token_name }}"
+            -policy-name {{ ansible_facts['nodename'] }}
+            -format json
+          register: node_agent_token
+          no_log: true
+          run_once: false
+          environment:
+            CONSUL_HTTP_TOKEN: "{{ consul_master_key }}"
+
+        - name: Set agent token output variable
+          ansible.builtin.set_fact:
+            node_agent_token_json: "{{ node_agent_token.stdout | from_json }}"
+
+        - name: Investigate agent policy
+          ansible.builtin.debug:
+            msg: "{{ node_agent_token_json }}"
+
+        - name: Template the token output
+          template:
+            src: "acl-persistence.json.jinja2"
+            dest: "{{ tmp_token_file.path }}"
+            mode: "0644"
+
+        - name: Save token in vault
+          command: >
+            vault kv put
+            kv-v1/consul/agent/acl-token/{{ ansible_facts['nodename'] }}
+            @{{ tmp_token_file.path }}
+          environment:
+            VAULT_ADDR: "{{ target_vault_addr }}"
+            VAULT_TOKEN: "{{ vault_master_token }}"
+
+        - name: Delete temporary token file
+          ansible.builtin.file:
+            path: "{{ tmp_token_file }}"
+            state: absent
+
+      when: (("kwuxlab_ansible_service_consul_acls_completion_mark" not in ansible_local) or
+        (kwuxlab_ansible_service_consul_acls_pb_version != ansible_local.kwuxlab_ansible_service_consul_acls_completion_mark.version)) and
+        consul_agent_token_list_status.stdout == ""
+
+    - name: Set the agent token
+      block:
+        - name: Fetch the agent token from vault
+          shell: >
+            vault kv get
+            kv-v1/consul/agent/acl-token/{{ ansible_facts['nodename'] }} |
+            grep SecretID |
+            awk '{ print $2 }'
+          environment:
+            VAULT_ADDR: "{{ target_vault_addr }}"
+            VAULT_TOKEN: "{{ vault_master_token }}"
+          register: node_agent_token_secret
+          no_log: true
+
+        - name: Set the node's agent token in consul
+          shell: >
+            consul acl set-agent-token agent "{{ node_agent_token_secret.stdout }}"
+          no_log: true
+          run_once: false
+          environment:
+            CONSUL_HTTP_TOKEN: "{{ consul_master_key }}"
+
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

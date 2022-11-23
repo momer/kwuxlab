@@ -1,0 +1,7 @@
+---
+target_packages:
+  - 'wget'
+  - 'curl'
+  - 'vim'
+  - 'ufw'
+  - 'tailscale'

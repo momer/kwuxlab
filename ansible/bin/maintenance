@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Install ansible dependencies/requirements
+./bin/install-requirements
+
+# Action to perform
+default_action="reboot"
+ACTION="${ACTION:-$default_action}"
+
+# kwuxlab env
+default_kwuxlab_env="test"
+KWUXLAB_ENV="${KWUXLAB_ENV:-$default_kwuxlab_env}"
+
+params=("-vv"
+"-e" "env=${KWUXLAB_ENV}"
+"-e" "ansible_user=kwuxlab_ansibler"
+"-e" "remote_user=kwuxlab_ansibler"
+"--vault-password-file" "password_file.${KWUXLAB_ENV}.txt"
+"-i" "inventories/${KWUXLAB_ENV}/tailscale.ini")
+
+if [ "$KWUXLAB_ENV" = "test" ]; then
+  params+=("--private-key=~/.vagrant.d/insecure_private_key")
+fi
+
+case "$ACTION" in
+  "reboot")
+    params+=("maintenance-reboot.yml")
+    ;;
+  "apt-upgrade")
+    params+=("maintenance-apt-upgrade.yml")
+    ;;
+  "restart-service")
+    params+=("maintenance-restart-service.yml")
+    ;;
+esac
+
+ansible-playbook "${params[@]}"

@@ -1,0 +1,53 @@
+---
+- hosts: "{{ variable_hosts | default('kwuxlab_hosts') }}"
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_service_envoy
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Update apt cache if required
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+
+    # Per https://github.com/ansible/ansible/issues/29451
+    # We can't downgrade an apt package via ansible just yet
+    - name: Check if envoy is already installed
+      shell: "dpkg-query -W '{{ envoy_package_name }}'"
+      changed_when: true
+      ignore_errors: True
+      register: envoy_is_installed
+
+    - name: Remove envoy if the version is incorrect
+      apt:
+        name: "{{ envoy_package_name }}"
+        state: absent
+      when: "( envoy_is_installed is failed ) or
+            ('{{ envoy_package_version }}' not in envoy_is_installed.stdout)"
+
+  roles:
+    # The robustq.envoyproxy is a fork of the original ansible role, and has
+    # been quickly updated to support ubuntu, specifically.
+    #
+    # Credit is due to the original author at:
+    # https://github.com/fabiocruzcoelho/ansible-role-envoyproxy
+    # diff at:
+    # https://github.com/fabiocruzcoelho/ansible-role-envoyproxy/compare/master...robustq:robustq?expand=1
+    - role: robustq.envoyproxy
+      vars:
+        envoy_configuration_template: "envoy_config.yaml.jinja2"
+
+  tasks:
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

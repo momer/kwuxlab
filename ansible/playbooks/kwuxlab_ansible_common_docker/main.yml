@@ -1,0 +1,77 @@
+---
+- hosts: "{{ target_host_group | default('all')}}"
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_common_docker
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+    - name: Update apt cache if required
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+
+    - name: Ensure that sudoer user group exists
+      group:
+        name: "{{ sudoer_group }}"
+        state: present
+
+    - name: Allow sudoer_group group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: "{{ '^%' + sudoer_group }}"
+        line: "{{ '%' + sudoer_group + ' ALL=(ALL) NOPASSWD: ALL' }}"
+        validate: 'visudo -cf %s'
+
+    - name: Create docker user
+      user:
+        name: "{{ kwuxlab_docker_user }}"
+        create_home: True
+        shell: /bin/bash
+        state: present
+        groups:
+          - "{{ sudoer_group }}"
+        expires: -1
+
+    - name: Install pip docker
+      pip:
+        name: docker
+        version: "{{ pip_docker_version }}"
+        executable: "{{ pip_executable }}"
+
+    - name: Install pip docker-compose
+      pip:
+        name: docker-compose
+        version: "{{ pip_docker_compose_version }}"
+        executable: "{{ pip_executable }}"
+  roles:
+    - role: geerlingguy.docker
+      vars:
+        docker_edition: "{{ target_docker_edition }}"
+        docker_engine_install_version: "{{ target_docker_engine_install_version }}"
+        docker_package: "{{ target_docker_package }}"
+        docker_package_state: "{{ target_docker_package_state }}"
+        docker_install_compose: "{{ target_docker_install_compose }}"
+        docker_compose_version: "{{ target_docker_compose_version }}"
+        docker_compose_path: "{{ target_docker_compose_path }}"
+        docker_users: "{{ target_docker_users }}"
+        docker_daemon_options: "{{ target_docker_daemon_options }}"
+
+  tasks:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

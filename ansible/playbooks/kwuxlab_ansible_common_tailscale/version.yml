@@ -1,0 +1,3 @@
+---
+task_group_name: kwuxlab_ansible_common_tailscale
+kwuxlab_ansible_common_tailscale_pb_version: 0.0.1

@@ -1,0 +1,4 @@
+---
+# Completion notification
+task_group_name: kwuxlab_ansible_common_base_ssh_rules
+kwuxlab_ansible_common_base_ssh_rules_pb_version: 0.0.1

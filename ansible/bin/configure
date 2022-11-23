@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# Install ansible dependencies/requirements
+./bin/install-requirements
+
+# kwuxlab env
+default_kwuxlab_env="test"
+KWUXLAB_ENV="${KWUXLAB_ENV:-$default_kwuxlab_env}"
+
+# private key - note: no expansion is needed here.
+default_private_key="~/.ssh/id_ed25519"
+PRIVATE_KEY="${PRIVATE_KEY:-$default_private_key}"
+
+
+# Base configuration; can be skipped by setting SKIP_BASE_CONFIG
+if [ -z "$SKIP_BASE_CONFIG" ]
+then
+  base_params=("-vv"
+    "-e" "env=${KWUXLAB_ENV}"
+    "--vault-password-file" "password_file.${KWUXLAB_ENV}.txt")
+
+    if [ "$KWUXLAB_ENV" = "test" ]; then
+      base_params+=("--extra-vars=ansible_user=vagrant")
+      base_params+=("--extra-vars=remote_user=vagrant" )
+      base_params+=("--inventory=inventories/${KWUXLAB_ENV}/hostip.ini")
+      base_params+=("--private-key=~/.vagrant.d/insecure_private_key")
+    else
+      base_params+=("--extra-vars=ansible_user=root")
+      base_params+=("--extra-vars=remote_user=root" )
+      base_params+=("--inventory=inventories/${KWUXLAB_ENV}/hostip.ini")
+      base_params+=("--private-key=${PRIVATE_KEY}")
+    fi
+
+    base_params+=("configure_base.yml")
+    ansible-playbook "${base_params[@]}"
+else
+  echo "Skipping base configuration..."
+fi
+
+# Configuration (formerly known as extras)
+extra_params=("-vv"
+  "-e" "env=${KWUXLAB_ENV}"
+  "--vault-password-file" "password_file.${KWUXLAB_ENV}.txt")
+
+if [ "$KWUXLAB_ENV" = "test" ]; then
+  extra_params+=("--extra-vars=ansible_user=vagrant")
+  extra_params+=("--extra-vars=remote_user=vagrant" )
+  extra_params+=("--inventory=inventories/${KWUXLAB_ENV}/hostip.ini")
+  extra_params+=("--private-key=~/.vagrant.d/insecure_private_key")
+else
+  extra_params+=("--extra-vars=ansible_user=kwuxlab_ansibler")
+  extra_params+=("--extra-vars=remote_user=kwuxlab_ansibler" )
+  extra_params+=("--inventory=inventories/${KWUXLAB_ENV}/hostip.ini")
+  extra_params+=("--private-key=${PRIVATE_KEY}")
+fi
+
+extra_params+=("configure.yml")
+
+ansible-playbook "${extra_params[@]}"

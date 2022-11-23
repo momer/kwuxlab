@@ -1,0 +1,2 @@
+---
+ansible_local_facts_dir: /etc/ansible/facts.d

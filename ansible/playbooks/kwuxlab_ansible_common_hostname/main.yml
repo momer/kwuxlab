@@ -1,0 +1,93 @@
+---
+- hosts: "{{ target_host_group | default('all')}}"
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+    - include: handlers/machine.yml
+  vars_files:
+    - vars.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_common_hostname
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Set fact of old hostname
+      set_fact:
+        old_previous_hostname: "{{ ansible_hostname }}"
+
+    - name: Install net-tools, if needed
+      apt:
+        name: "net-tools"
+
+    # Ref: https://www.derpturkey.com/setting-host-with-ansible-in-ubuntu/
+    - name: Add target_hostname to /etc/hosts, by replacing the last match of nodename
+      lineinfile:
+        dest: /etc/hosts
+        regexp: "^127\\.([0-9])+\\.([0-9])+\\.([0-9])+(.*?{{ ansible_facts['nodename'] }}.*)"
+        line: "127.\\g<1>.\\g<2>.\\g<3> {{ target_hostname }}\\g<4>"
+        backrefs: yes
+        state: present
+      # https://stackoverflow.com/questions/29075287/ansible-insert-line-if-not-exists
+      register: secondary_loopback_check
+      when: ansible_facts['nodename'] != target_hostname
+      notify: reboot machine
+
+    - name: Print the local fact
+      ansible.builtin.debug:
+        msg: "{{secondary_loopback_check}}"
+
+    # https://www.derpturkey.com/setting-host-with-ansible-in-ubuntu/
+    - name: Add target_hostname to /etc/hosts, a third way
+      lineinfile:
+        dest: /etc/hosts
+        regexp: '^127\.0\.0\.1[ \t]+localhost'
+        line: "127.0.0.1 localhost {{ target_hostname }}"
+        state: present
+      register: primary_loopback_check
+      when: secondary_loopback_check['changed'] == false and ansible_facts['nodename'] != target_hostname
+      notify: reboot machine
+
+    - name: Replace /etc/hosts hostname with desired
+      tags:
+        - hosts
+      lineinfile:
+        dest: /etc/hosts
+        regexp: "^{{ ansible_default_ipv4.address }}"
+        line: "{{ ansible_default_ipv4.address }} {{ target_hostname }} {{ inventory_hostname }} {{ ansible_hostname }}"
+        state: present
+      register: ipv4_rename_check
+      when: secondary_loopback_check['changed'] == false and primary_loopback_check['changed'] == false and target_hostname != "" and ansible_facts['nodename'] != target_hostname
+      notify: reboot machine
+
+    - name: Set hostname a fourth way
+      ansible.builtin.hostname:
+        name: "{{ target_hostname }}"
+      tags:
+        - hostname
+      notify: reboot machine
+
+    - name: Flush handlers to trigger an immediate reboot of the machine
+      meta: flush_handlers
+
+    - name: Allow the host to come back online
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        state: started
+
+    - name: Validate ansible_fqdn == inventory_hostname
+      tags:
+        - validate
+      assert:
+        that:
+          ansible_facts['nodename'] == target_hostname
+
+  tasks:
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

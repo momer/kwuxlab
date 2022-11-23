@@ -1,0 +1,43 @@
+---
+- hosts: "{{ target_host_group | default('all')}}"
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_common_os_hardening
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Update apt cache if required
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+
+  collections:
+    - devsec.hardening
+
+  roles:
+    - role: devsec.hardening.os_hardening
+      vars:
+        ufw_manage_defaults: "{{ target_ufw_manage_defaults }}"
+        vars:
+          sysctl_overwrite:
+            # Enable IPv4 traffic forwarding.
+            net.ipv4.ip_forward: 1
+            net.ipv6.conf.all.forwarding: 1
+      tags:
+        - skip_cubic_iso_build
+        - hardening
+        - os_hardening
+
+  tasks:
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task

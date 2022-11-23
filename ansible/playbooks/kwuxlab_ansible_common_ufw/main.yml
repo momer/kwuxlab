@@ -1,0 +1,32 @@
+---
+- hosts: "{{ target_host_group | default('all')}}"
+  become: yes
+  gather_facts: yes
+  handlers:
+    - include: handlers/task_completion.yml
+  vars_files:
+    - vars.yml
+    - version.yml
+  tags:
+    - kwuxlab_ansible_common_ufw
+    - skip_cubic_iso_build
+  pre_tasks:
+    - name: Collect facts
+      ansible.builtin.setup:
+      tags:
+        - gather
+
+    - name: Update apt cache if needed
+      apt:
+        update_cache: yes
+
+  roles:
+    - role: weareinteractive.ufw
+      vars:
+        ufw_manage_defaults: "{{ target_ufw_manage_defaults }}"
+        ufw_rules: "{{ target_ufw_rules }}"
+
+  tasks:
+    - name: log the completion of this task
+      command: /bin/true
+      notify: complete playbook task
