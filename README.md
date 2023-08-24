@@ -50,7 +50,7 @@ requires only that you add additional security where desired
      - [ ] Azure
    - [x] :heavy_check_mark: Virtual machine deployment via [Vagrant](https://www.vagrantup.com/)
 
-2. [Basic compute environment configuration](/ansible/playbooks/kwuxlab_free_common_base/README.md),
+2. [Basic compute environment configuration](/ansible/playbooks/kwuxlab_ansible_common_base/README.md),
 including basic security/quality-of-life settings:
    - [x] :heavy_check_mark: (Kwuxlab Pro Only) Non-root sudoer user creation
       - Includes configuration to allow non-root user with Ansible
@@ -65,26 +65,26 @@ including basic security/quality-of-life settings:
    - [x] :heavy_check_mark: (Kwuxlab Pro Only) Stateful storage with details of 
      ansible playbook execution (version, etc.) on remote
      host for future debugging/upgrade reference.
-   - [x] :heavy_check_mark: [Docker installation & base configuration](/ansible/playbooks/kwuxlab_free_common_base/README.md)
-   - [x] :heavy_check_mark: [Python/python3-pip installation/configuration](/ansible/playbooks/kwuxlab_free_common_base/README.md)
-   - [x] :heavy_check_mark: [Envoy proxy installation/base configuration](/ansible/playbooks/kwuxlab_free_common_base/README.md)
+   - [x] :heavy_check_mark: [Docker installation & base configuration](/ansible/playbooks/kwuxlab_ansible_common_base/README.md)
+   - [x] :heavy_check_mark: [Python/python3-pip installation/configuration](/ansible/playbooks/kwuxlab_ansible_common_base/README.md)
+   - [x] :heavy_check_mark: [Envoy proxy installation/base configuration](/ansible/playbooks/kwuxlab_ansible_common_base/README.md)
 
-3. [Consul deployment/configuration](/ansible/playbooks/kwuxlab_free_service_consul/README.md)
+3. [Consul deployment/configuration](/ansible/playbooks/kwuxlab_ansible_service_consul/README.md)
    - [x] :heavy_check_mark: (Kwuxlab Pro Only) Service (all ports) bound to private (tailscale)
      network; not accessible via internet.
    - [x] :heavy_check_mark: (Kwuxlab Pro Only) Configure [Consul DNS](https://developer.hashicorp.com/consul/docs/discovery/dns)
      (Service discovery via DNS)
    - [x] :heavy_check_mark: (Kwuxlab Pro Only) Configure and enable
      [Consul Access Control Lists (ACLs)](https://developer.hashicorp.com/consul/tutorials/security/access-control-setup-production)
-   - [x] :heavy_check_mark: [Consul Server/Client deployment and bootstrap](/ansible/playbooks/kwuxlab_free_service_consul/README.md)
+   - [x] :heavy_check_mark: [Consul Server/Client deployment and bootstrap](/ansible/playbooks/kwuxlab_ansible_service_consul/README.md)
 
-4. [Vault deployment/configuration](/ansible/playbooks/kwuxlab_free_service_vault/README.md)
+4. [Vault deployment/configuration](/ansible/playbooks/kwuxlab_ansible_service_vault/README.md)
     - [x] :heavy_check_mark: (Kwuxlab Pro Only) Service (all ports) bound to private (tailscale)
       network; not accessible via internet.
     - [x] :heavy_check_mark: (Kwuxlab Pro Only) Integrate with Consul via ACL token
     - [x] :heavy_check_mark: Basic Vault installation
 
-5. [Nomad deployment/configuration](/ansible/playbooks/kwuxlab_free_service_nomad/README.md)
+5. [Nomad deployment/configuration](/ansible/playbooks/kwuxlab_ansible_service_nomad/README.md)
     - [x] :heavy_check_mark: (Kwuxlab Pro Only) Service (all ports) bound to private (tailscale)
       network; not accessible via internet.
     - [x] :heavy_check_mark: (Kwuxlab Pro Only) Configure and manage [Host Volumes](https://developer.hashicorp.com/nomad/tutorials/stateful-workloads/stateful-workloads-host-volumes)
