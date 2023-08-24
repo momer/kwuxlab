@@ -76,7 +76,7 @@ including basic security/quality-of-life settings:
      (Service discovery via DNS)
    - [x] :heavy_check_mark: (Kwuxlab Pro Only) Configure and enable
      [Consul Access Control Lists (ACLs)](https://developer.hashicorp.com/consul/tutorials/security/access-control-setup-production)
-   - [x] :heavy_check_mark: [Consul Server/Client deployment and bootstrap](/ansible/playbooks/kwuxlab_ansible_service_consul/README.md)
+   - [x] :heavy_check_mark: [Consul Server/Client deployment and bootstrap](/ansible/playbooks/kwuxlab_ansible_service_consul)
 
 4. [Vault deployment/configuration](/ansible/playbooks/kwuxlab_ansible_service_vault/README.md)
     - [x] :heavy_check_mark: (Kwuxlab Pro Only) Service (all ports) bound to private (tailscale)
